@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Time Tracker — Personal · Work · Sleep</title>
+<style>
+  :root{
+    --bg:#0b0d13;
+    --card:#151824;
+    --card2:#1b1f2e;
+    --text:#e8ecf5;
+    --muted:#8b94a8;
+    --border:#242a3c;
+    --green:#22c55e;
+    --amber:#f59e0b;
+    --red:#ef4444;
+    --accent:#8b5cf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1100px 520px at 50% -12%, #1b2440 0%, rgba(11,13,19,0) 60%),
+      var(--bg);
+    background-attachment: fixed;
+    color:var(--text);
+    min-height:100vh;
+    padding:26px 16px 70px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:880px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+  h1{font-size:1.45rem;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+  h1 .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}
+  .live{
+    font-variant-numeric:tabular-nums;color:var(--muted);font-size:.85rem;
+    background:var(--card);padding:9px 16px;border-radius:999px;border:1px solid var(--border);
+    white-space:nowrap;
+  }
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:7px;
+    background:var(--card);padding:7px;border-radius:18px;border:1px solid var(--border);
+    margin-bottom:20px;position:sticky;top:10px;z-index:20;
+    box-shadow:0 18px 40px -30px #000;
+  }
+  .tab{
+    padding:13px 8px;border:0;border-radius:13px;background:transparent;color:var(--muted);
+    font-size:.93rem;font-weight:700;font-family:inherit;cursor:pointer;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .tab:hover{color:var(--text);background:#1d2233}
+  .tab.active{background:var(--accent);color:#fff;box-shadow:0 10px 26px -12px var(--accent)}
+  .tab[data-tab="personal"]{--accent:#8b5cf6}
+  .tab[data-tab="work"]{--accent:#14b8a6}
+  .tab[data-tab="sleep"]{--accent:#f59e0b}
+
+  /* ---------- panels ---------- */
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  #panel-personal{--accent:#8b5cf6}
+  #panel-work{--accent:#14b8a6}
+  #panel-sleep{--accent:#f59e0b}
+
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:20px;
+    padding:20px;margin-bottom:16px;
+  }
+  .card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .card h2{font-size:1.02rem;letter-spacing:-.01em;margin-bottom:6px}
+  .card-head h2{margin-bottom:0}
+  .hint{color:var(--muted);font-size:.86rem;margin-bottom:16px}
+  .hidden{display:none !important}
+
+  /* ---------- date/time stamp ---------- */
+  .stamp{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .stamp > div{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:11px 15px}
+  .lbl{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:4px}
+  .stamp strong{font-size:1rem;font-variant-numeric:tabular-nums;font-weight:700}
+
+  /* ---------- chips ---------- */
+  label{display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin:16px 0 8px;letter-spacing:.02em}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .chip{
+    padding:9px 15px;border-radius:999px;background:var(--card2);border:1px solid var(--border);
+    color:var(--text);font-size:.84rem;font-family:inherit;font-weight:600;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 20px -12px var(--accent)}
+
+  /* ---------- inputs ---------- */
+  .text-input{
+    width:100%;padding:13px 15px;border-radius:13px;background:var(--card2);
+    border:1px solid var(--border);color:var(--text);font-size:.94rem;font-family:inherit;
+    outline:none;transition:.15s;
+  }
+  .text-input::placeholder{color:#5d6579}
+  .text-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.18)}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    border:0;border-radius:13px;padding:12px 20px;font-size:.9rem;font-weight:700;font-family:inherit;
+    cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--accent);color:#fff;box-shadow:0 10px 26px -14px var(--accent)}
+  .btn.warn{background:#3a2e12;color:#fbbf24;border:1px solid #6b5314}
+  .btn.warn:hover{background:#4a3a15}
+  .btn.danger{background:#3b1519;color:#f87171;border:1px solid #6b2028}
+  .btn.danger:hover{background:#4c1a20}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+  .btn.ghost:hover{color:var(--text);border-color:#3a4258}
+  .btn.big{width:100%;padding:16px;font-size:1rem;margin-top:18px}
+  .btn.tiny{padding:6px 12px;font-size:.75rem;border-radius:9px}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+  .btn-row .btn{flex:1;min-width:170px}
+  .icon-btn{
+    background:transparent;border:0;color:#4e566b;cursor:pointer;font-size:.9rem;
+    padding:6px 8px;border-radius:8px;transition:.15s;font-family:inherit;
+  }
+  .icon-btn:hover{color:var(--red);background:#2a1418}
+  .link{background:none;border:0;color:var(--accent);font:inherit;font-weight:800;cursor:pointer;text-decoration:underline;padding:0}
+
+  /* ---------- active session ---------- */
+  .active-card{border-color:rgba(255,255,255,.08);background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 55%), var(--card)}
+  .active-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .active-head h2{font-size:1.35rem;letter-spacing:-.02em;margin:2px 0 6px}
+  .meta{color:var(--muted);font-size:.82rem}
+  .status{font-size:.7rem;font-weight:800;padding:7px 13px;border-radius:999px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+  .status.running{background:#0d2f1c;color:#4ade80;border:1px solid #1c5c34;animation:pulse 2.2s ease-in-out infinite}
+  .status.break{background:#3a2e12;color:#fbbf24;border:1px solid #6b5314}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+  .timer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:520px){.timer-grid{grid-template-columns:1fr}}
+  .timer-box{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
+  .timer{
+    font-size:clamp(1.6rem,6.5vw,2.5rem);font-weight:800;font-variant-numeric:tabular-nums;
+    letter-spacing:-.02em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    line-height:1.15;margin-top:4px;
+  }
+  .timer.break{color:var(--amber)}
+
+  /* ---------- conflict banner ---------- */
+  .conflict{
+    background:#3a2e12;border:1px solid #6b5314;color:#fbbf24;border-radius:13px;
+    padding:11px 15px;font-size:.84rem;margin-bottom:16px;font-weight:600;
+  }
+  .conflict b{color:#fde68a}
+
+  /* ---------- summary ---------- */
+  .pill{
+    font-size:.76rem;font-weight:800;background:var(--card2);border:1px solid var(--border);
+    color:var(--muted);padding:6px 13px;border-radius:999px;white-space:nowrap;
+  }
+  .sum-row{margin-bottom:14px}
+  .sum-top{display:flex;justify-content:space-between;gap:10px;font-size:.87rem;margin-bottom:6px}
+  .sum-name{font-weight:700}
+  .sum-val{color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
+  .bar{height:7px;border-radius:99px;background:var(--card2);overflow:hidden}
+  .bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#ffffff55);transition:width .4s ease}
+  .sum-total{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);font-size:.84rem;color:var(--muted)}
+  .sum-total strong{color:var(--text);font-variant-numeric:tabular-nums}
+
+  /* ---------- history ---------- */
+  .day-group{margin-bottom:18px}
+  .day-head{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    font-size:.76rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:9px;padding:0 2px;
+  }
+  .sess{
+    display:flex;align-items:center;gap:12px;background:var(--card2);border:1px solid var(--border);
+    border-radius:14px;padding:12px 14px;margin-bottom:8px;transition:.15s;
+  }
+  .sess:hover{border-color:#333c55}
+  .sess-main{flex:1;min-width:0}
+  .sess-title{font-weight:700;font-size:.92rem;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .sess-title .note{color:var(--muted);font-weight:500;font-size:.79rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sess-sub{color:var(--muted);font-size:.76rem;margin-top:3px;font-variant-numeric:tabular-nums}
+  .sess-dur{font-weight:800;font-variant-numeric:tabular-nums;font-size:.9rem;white-space:nowrap}
+  .empty{color:#5d6579;font-size:.86rem;padding:14px 2px}
+
+  /* ---------- footer ---------- */
+  .foot{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translate(-50%,26px);
+    background:#1d2233;border:1px solid var(--border);color:var(--text);
+    padding:13px 22px;border-radius:14px;font-size:.88rem;font-weight:600;
+    opacity:0;pointer-events:none;transition:.28s;z-index:99;max-width:90vw;text-align:center;
+    box-shadow:0 20px 50px -20px #000;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.good{border-color:#1c5c34;color:#86efac}
+  .toast.bad{border-color:#6b2028;color:#fca5a5}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><span class="dot"></span> Time Tracker</h1>
+    <div class="live" id="liveClock">—</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab" data-tab="personal">🙂 Personal</button>
+    <button class="tab" data-tab="work">💼 Work</button>
+    <button class="tab" data-tab="sleep">😴 Sleep</button>
+  </nav>
+
+  <div id="panels"></div>
+
+  <footer class="foot">
+    <button class="btn ghost tiny" id="exportBtn">⬇ Export JSON</button>
+    <button class="btn ghost tiny" id="wipeBtn">🗑 Reset everything</button>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   CONFIG
+========================================================= */
+const STORAGE_KEY = 'time-tracker-v1';
+
+const TABS = {
+  personal: {
+    label: 'Personal', icon: '🙂',
+    presets: ['Watching','Eating','Playing','Bathing','Reading','Exercise','Shopping','Gaming','Socialising','Other']
+  },
+  work: {
+    label: 'Work', icon: '💼',
+    presets: ['Deep Work','Meetings','Emails / Chat','Client Call','Learning','Admin','Other']
+  },
+  sleep: {
+    label: 'Sleep', icon: '😴',
+    presets: ['Night Sleep','Nap','Resting','Other']
+  }
+};
+
+/* =========================================================
+   STATE
+========================================================= */
+function defaultState(){
+  return {
+    sessions: { personal: [], work: [], sleep: [] },
+    active:   { personal: null, work: null, sleep: null },
+    currentTab: 'personal'
+  };
+}
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const d = JSON.parse(raw);
+    const base = defaultState();
+    return {
+      sessions: Object.assign(base.sessions, d.sessions || {}),
+      active:   Object.assign(base.active,   d.active   || {}),
+      currentTab: TABS[d.currentTab] ? d.currentTab : 'personal'
+    };
+  }catch(e){
+    console.warn('Could not load saved data', e);
+    return defaultState();
+  }
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn('Could not save', e); }
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+function fmtClock(ms){
+  const t = Math.max(0, Math.floor(ms/1000));
+  const h = String(Math.floor(t/3600)).padStart(2,'0');
+  const m = String(Math.floor((t%3600)/60)).padStart(2,'0');
+  const s = String(t%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+
+function fmtHuman(ms){
+  const t = Math.floor(Math.max(0,ms)/1000);
+  const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = t%60;
+  if(h) return `${h}h ${m}m`;
+  if(m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function fmtTime(ts){
+  return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function fmtDateLong(ts){
+  return new Date(ts).toLocaleDateString([], {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* active (non-break) time of a running session */
+function activeElapsedMs(s, now = Date.now()){
+  const doneBreaks = s.breaks.reduce((a,b)=> a + (b.end - b.start), 0);
+  const currentBreak = s.breakStart ? (now - s.breakStart) : 0;
+  return (now - s.startedAt) - doneBreaks - currentBreak;
+}
+
+/* total break time of a running session */
+function breakElapsedMs(s, now = Date.now()){
+  const doneBreaks = s.breaks.reduce((a,b)=> a + (b.end - b.start), 0);
+  const currentBreak = s.breakStart ? (now - s.breakStart) : 0;
+  return doneBreaks + currentBreak;
+}
+
+function toast(msg, kind = 'good'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + kind;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.className = 'toast'; }, 2800);
+}
+
+/* =========================================================
+   BUILD PANELS
+========================================================= */
+function panelHTML(tab){
+  const cfg = TABS[tab];
+  return `
+  <section class="panel" id="panel-${tab}">
+
+    <!-- ---------- START CARD ---------- -->
+    <div class="card" id="startCard-${tab}">
+      <div class="stamp">
+        <div>
+          <span class="lbl">📅 Date</span>
+          <strong id="stampDate-${tab}">—</strong>
+        </div>
+        <div>
+          <span class="lbl">🕒 Time</span>
+          <strong id="stampTime-${tab}">—</strong>
+        </div>
+      </div>
+
+      <div id="conflict-${tab}"></div>
+
+      <h2>Start a ${cfg.label} session</h2>
+      <p class="hint">Pick what you're doing, hit <b>Start</b>. You can take breaks and resume at any time.</p>
+
+      <label>What are you doing?</label>
+      <div class="chips" id="chips-${tab}">
+        ${cfg.presets.map(p => `<button type="button" class="chip" data-chip="${tab}" data-val="${p}">${p}</button>`).join('')}
+      </div>
+      <input type="text" class="text-input" id="activity-${tab}" placeholder="…or type a custom activity" />
+
+      <label>Notes (optional)</label>
+      <input type="text" class="text-input" id="notes-${tab}" placeholder="Anything worth remembering?" />
+
+      <button class="btn primary big" data-start="${tab}">▶ Start Session</button>
+    </div>
+
+    <!-- ---------- ACTIVE SESSION CARD ---------- -->
+    <div class="card active-card hidden" id="activeCard-${tab}">
+      <div class="active-head">
+        <div>
+          <span class="lbl">Currently doing</span>
+          <h2 id="activeActivity-${tab}">—</h2>
+          <div class="meta" id="activeMeta-${tab}">—</div>
+        </div>
+        <span class="status running" id="status-${tab}">Running</span>
+      </div>
+
+      <div class="timer-grid">
+        <div class="timer-box">
+          <span class="lbl">Active time</span>
+          <div class="timer" id="timer-${tab}">00:00:00</div>
+        </div>
+        <div class="timer-box">
+          <span class="lbl">Break time</span>
+          <div class="timer break" id="breakTimer-${tab}">00:00:00</div>
+        </div>
+      </div>
+
+      <div class="btn-row" id="activeBtns-${tab}"></div>
+    </div>
+
+    <!-- ---------- SUMMARY ---------- -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Time per activity</h2>
+        <span class="pill" id="totalPill-${tab}">Today · 0s</span>
+      </div>
+      <div id="summary-${tab}"></div>
+    </div>
+
+    <!-- ---------- HISTORY ---------- -->
+    <div class="card">
+      <div class="card-head">
+        <h2>Session history</h2>
+        <button class="btn ghost tiny" data-clear="${tab}">Clear all</button>
+      </div>
+      <div id="history-${tab}"></div>
+    </div>
+
+  </section>`;
+}
+
+document.getElementById('panels').innerHTML =
+  Object.keys(TABS).map(panelHTML).join('');
+
+/* =========================================================
+   RENDER
+========================================================= */
+function renderTab(tab){
+  const s = state.active[tab];
+  const startCard  = document.getElementById('startCard-'  + tab);
+  const activeCard = document.getElementById('activeCard-' + tab);
+
+  if(s){
+    startCard.classList.add('hidden');
+    activeCard.classList.remove('hidden');
+    renderActive(tab);
+  }else{
+    startCard.classList.remove('hidden');
+    activeCard.classList.add('hidden');
+  }
+
+  /* conflict banner (a session running in another tab) */
+  const conflictEl = document.getElementById('conflict-' + tab);
+  const other = Object.keys(state.active).find(t => t !== tab && state.active[t]);
+  conflictEl.innerHTML = (!s && other)
+    ? `<div class="conflict">⚠ A session is already running in <b>${TABS[other].label}</b>.
+         <button class="link" data-goto="${other}">Go there →</button></div>`
+    : '';
+
+  renderSummary(tab);
+  renderHistory(tab);
+  updateStamp(tab);
+}
+
+function renderAll(){
+  Object.keys(TABS).forEach(renderTab);
+}
+
+function renderActive(tab){
+  const s = state.active[tab];
+  if(!s) return;
+
+  document.getElementById('activeActivity-' + tab).textContent = s.activity;
+  document.getElementById('activeMeta-' + tab).textContent =
+    `Started ${fmtDateLong(s.startedAt)} at ${fmtTime(s.startedAt)}` +
+    (s.notes ? ` · ${s.notes}` : '');
+
+  const status = document.getElementById('status-' + tab);
+  const onBreak = !!s.breakStart;
+  status.textContent = onBreak ? 'On break' : 'Running';
+  status.className = 'status ' + (onBreak ? 'break' : 'running');
+
+  document.getElementById('activeBtns-' + tab).innerHTML = onBreak
+    ? `<button class="btn primary" data-act="resume" data-tab="${tab}">▶ Resume session</button>
+       <button class="btn danger"  data-act="end"    data-tab="${tab}">⏹ Logout / End session</button>`
+    : `<button class="btn warn"    data-act="break"  data-tab="${tab}">⏸ Take a break</button>
+       <button class="btn danger"  data-act="end"    data-tab="${tab}">⏹ Logout / End session</button>`;
+
+  tick();
+}
+
+function renderSummary(tab){
+  const wrap = document.getElementById('summary-' + tab);
+  const list = state.sessions[tab];
+
+  const totals = {};
+  let grand = 0, today = 0;
+  const todayKey = new Date().toDateString();
+
+  list.forEach(s => {
+    totals[s.activity] = (totals[s.activity] || 0) + s.activeMs;
+    grand += s.activeMs;
+    if(new Date(s.startedAt).toDateString() === todayKey) today += s.activeMs;
+  });
+
+  document.getElementById('totalPill-' + tab).textContent = 'Today · ' + fmtHuman(today);
+
+  const entries = Object.entries(totals).sort((a,b) => b[1] - a[1]);
+  if(!entries.length){
+    wrap.innerHTML = '<p class="empty">Nothing tracked yet — start a session above 👆</p>';
+    return;
+  }
+
+  const max = entries[0][1];
+  wrap.innerHTML = entries.map(([name, ms]) => `
+    <div class="sum-row">
+      <div class="sum-top">
+        <span class="sum-name">${escapeHtml(name)}</span>
+        <span class="sum-val">${fmtHuman(ms)}</span>
+      </div>
+      <div class="bar"><div class="bar-fill" style="width:${Math.max(3, (ms/max)*100)}%"></div></div>
+    </div>`).join('') +
+    `<div class="sum-total">Total ${TABS[tab].label.toLowerCase()} time tracked: <strong>${fmtHuman(grand)}</strong></div>`;
+}
+
+function renderHistory(tab){
+  const wrap = document.getElementById('history-' + tab);
+  const list = state.sessions[tab];
+
+  if(!list.length){
+    wrap.innerHTML = '<p class="empty">No sessions yet.</p>';
+    return;
+  }
+
+  /* group by day (list is newest-first) */
+  const groups = new Map();
+  list.forEach(s => {
+    const key = new Date(s.startedAt).toDateString();
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(s);
+  });
+
+  let html = '';
+  for(const [, items] of groups){
+    const dayTotal = items.reduce((a,s) => a + s.activeMs, 0);
+    html += `<div class="day-group">
+      <div class="day-head">
+        <span>${fmtDateLong(items[0].startedAt)}</span>
+        <span class="pill">${fmtHuman(dayTotal)}</span>
+      </div>`;
+
+    items.forEach(s => {
+      html += `<div class="sess">
+        <div class="sess-main">
+          <div class="sess-title">
+            ${escapeHtml(s.activity)}
+            ${s.notes ? `<span class="note">· ${escapeHtml(s.notes)}</span>` : ''}
+          </div>
+          <div class="sess-sub">
+            ${fmtTime(s.startedAt)} → ${fmtTime(s.endedAt)}
+            ${s.breakMs > 1000 ? ` · break ${fmtHuman(s.breakMs)}` : ''}
+          </div>
+        </div>
+        <div class="sess-dur">${fmtHuman(s.activeMs)}</div>
+        <button class="icon-btn" data-del="${tab}" data-id="${s.id}" title="Delete session">✕</button>
+      </div>`;
+    });
+
+    html += `</div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function updateStamp(tab){
+  const now = new Date();
+  const dEl = document.getElementById('stampDate-' + tab);
+  const tEl = document.getElementById('stampTime-' + tab);
+  if(dEl) dEl.textContent = now.toLocaleDateString([], {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+  if(tEl) tEl.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+/* =========================================================
+   LIVE TICK
+========================================================= */
+function tick(){
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    now.toLocaleDateString([], {weekday:'short', day:'2-digit', month:'short'}) +
+    ' · ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+  Object.keys(TABS).forEach(tab => {
+    updateStamp(tab);
+
+    const s = state.active[tab];
+    if(!s) return;
+
+    const tEl = document.getElementById('timer-' + tab);
+    const bEl = document.getElementById('breakTimer-' + tab);
+    if(tEl) tEl.textContent = fmtClock(activeElapsedMs(s));
+    if(bEl) bEl.textContent = fmtClock(breakElapsedMs(s));
+
+    const status = document.getElementById('status-' + tab);
+    if(status){
+      const onBreak = !!s.breakStart;
+      const txt = onBreak ? 'On break' : 'Running';
+      const cls = 'status ' + (onBreak ? 'break' : 'running');
+      if(status.textContent !== txt) status.textContent = txt;
+      if(status.className !== cls) status.className = cls;
+    }
+  });
+}
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+function switchTab(tab){
+  if(!TABS[tab]) return;
+  state.currentTab = tab;
+  document.querySelectorAll('.tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'panel-' + tab));
+  updateStamp(tab);
+  saveState();
+}
+
+function startSession(tab){
+  const runningTab = Object.keys(state.active).find(t => state.active[t]);
+  if(runningTab){
+    toast(`A session is already running in ${TABS[runningTab].label}. End it first.`, 'bad');
+    switchTab(runningTab);
+    return;
+  }
+
+  const input = document.getElementById('activity-' + tab);
+  const activity = (input.value || '').trim();
+  if(!activity){
+    input.focus();
+    toast('Pick or type what you are doing first.', 'bad');
+    return;
+  }
+
+  state.active[tab] = {
+    id: 's' + Date.now() + Math.random().toString(36).slice(2,7),
+    activity,
+    notes: (document.getElementById('notes-' + tab).value || '').trim(),
+    startedAt: Date.now(),
+    breaks: [],
+    breakStart: null
+  };
+
+  input.value = '';
+  document.getElementById('notes-' + tab).value = '';
+  document.querySelectorAll(`#chips-${tab} .chip`).forEach(c => c.classList.remove('selected'));
+
+  saveState();
+  renderAll();
+  toast(`${TABS[tab].label} session started — “${activity}”`, 'good');
+}
+
+function handleAct(act, tab){
+  const s = state.active[tab];
+  if(!s) return;
+
+  if(act === 'break'){
+    if(s.breakStart) return;
+    s.breakStart = Date.now();
+    toast('Break started ☕ Timer paused.', 'good');
+  }
+
+  if(act === 'resume'){
+    if(!s.breakStart) return;
+    s.breaks.push({ start: s.breakStart, end: Date.now() });
+    s.breakStart = null;
+    toast('Session resumed ▶', 'good');
+  }
+
+  if(act === 'end'){
+    endSession(tab);
+    return;
+  }
+
+  saveState();
+  renderActive(tab);
+}
+
+function endSession(tab){
+  const s = state.active[tab];
+  if(!s) return;
+
+  const end = Date.now();
+  if(s.breakStart){
+    s.breaks.push({ start: s.breakStart, end });
+    s.breakStart = null;
+  }
+
+  const breakMs = s.breaks.reduce((a,b) => a + (b.end - b.start), 0);
+  const totalMs = end - s.startedAt;
+
+  state.sessions[tab].unshift({
+    id: s.id,
+    activity: s.activity,
+    notes: s.notes,
+    startedAt: s.startedAt,
+    endedAt: end,
+    breaks: s.breaks,
+    totalMs,
+    breakMs,
+    activeMs: Math.max(0, totalMs - breakMs)
+  });
+
+  state.active[tab] = null;
+  saveState();
+  renderAll();
+  toast(`Session logged: ${s.activity} · ${fmtHuman(totalMs - breakMs)} active`, 'good');
+}
+
+function deleteSession(tab, id){
+  state.sessions[tab] = state.sessions[tab].filter(s => s.id !== id);
+  saveState();
+  renderTab(tab);
+  toast('Session deleted.', 'good');
+}
+
+function clearTab(tab){
+  if(!state.sessions[tab].length){
+    toast('Nothing to clear.', 'bad');
+    return;
+  }
+  if(!confirm(`Delete ALL ${TABS[tab].label.toLowerCase()} sessions? This cannot be undone.`)) return;
+  state.sessions[tab] = [];
+  saveState();
+  renderTab(tab);
+  toast('All sessions cleared.', 'good');
+}
+
+/* =========================================================
+   EVENTS
+========================================================= */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+/* delegated clicks for all dynamically rendered buttons */
+document.getElementById('panels').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+
+  if(btn.dataset.chip !== undefined && btn.dataset.chip !== ''){
+    const tab = btn.dataset.chip;
+    document.querySelectorAll(`#chips-${tab} .chip`).forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('activity-' + tab).value = btn.dataset.val;
+    return;
+  }
+  if(btn.dataset.start){
+    startSession(btn.dataset.start);
+    return;
+  }
+  if(btn.dataset.act){
+    handleAct(btn.dataset.act, btn.dataset.tab);
+    return;
+  }
+  if(btn.dataset.del){
+    deleteSession(btn.dataset.del, btn.dataset.id);
+    return;
+  }
+  if(btn.dataset.clear){
+    clearTab(btn.dataset.clear);
+    return;
+  }
+  if(btn.dataset.goto){
+    switchTab(btn.dataset.goto);
+    return;
+  }
+});
+
+/* typing a custom activity clears the chip highlight */
+Object.keys(TABS).forEach(tab => {
+  document.getElementById('activity-' + tab).addEventListener('input', () => {
+    document.querySelectorAll(`#chips-${tab} .chip`).forEach(c => c.classList.remove('selected'));
+  });
+
+  /* press Enter to start */
+  document.getElementById('activity-' + tab).addEventListener('keydown', e => {
+    if(e.key === 'Enter') startSession(tab);
+  });
+  document.getElementById('notes-' + tab).addEventListener('keydown', e => {
+    if(e.key === 'Enter') startSession(tab);
+  });
+});
+
+/* export */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `time-tracker-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Data exported.', 'good');
+});
+
+/* wipe */
+document.getElementById('wipeBtn').addEventListener('click', () => {
+  if(!confirm('Erase ALL data (sessions + any running timers) and start fresh?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  renderAll();
+  switchTab('personal');
+  toast('Everything reset.', 'good');
+});
+
+/* =========================================================
+   BOOT
+========================================================= */
+renderAll();
+switchTab(state.currentTab || 'personal');
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
